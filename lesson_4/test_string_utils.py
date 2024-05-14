@@ -18,10 +18,15 @@ def test_trim(utils):
     assert utils.trim("") == ""
 
 def test_to_list(utils):
+    # Позитивные тесты
     assert utils.to_list("a,b,c,d") == ["a", "b", "c", "d"]
     assert utils.to_list("1:2:3", ":") == ["1", "2", "3"]
+    
+    # Негативные тесты
     assert utils.to_list("") == []
     assert utils.to_list(" ") == [" "]
+    assert utils.to_list(None) == []
+    assert utils.to_list("04 апреля 2023", " ") == ["04", "апреля", "2023"]
 
 def test_contains(utils):
     assert utils.contains("SkyPro", "S") == True
