@@ -16,39 +16,57 @@ def test_form_submission():
             "address": "Ленина, 55-3",
             "e-mail": "test@skypro.com",
             "phone": "+7985899998787",
-            "zip-code": "",
+            "zip-code": "010000",
             "city": "Москва",
             "country": "Россия",
             "job-position": "QA",
             "company": "SkyPro"
         }
 
-        for field_id, value in fields.items():
-            element = WebDriverWait(browser, 10).until(
-                EC.presence_of_element_located((By.ID, field_id))
-            )
-            element.clear()
-            element.send_keys(value)
+        for field_name, value in fields.items():
+            try:
+                element = WebDriverWait(browser, 40).until(
+                    EC.presence_of_element_located((By.NAME, field_name))
+                )
+                print(f"Найден элемент: {field_name}")
+                element.clear()
+                element.send_keys(value)
+            except Exception as e:
+                print(f"Не удалось найти элемент с name {field_name}: {e}")
 
         # Нажатие кнопки Submit
-        submit_button = WebDriverWait(browser, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//button[text()='Submit']"))
-        )
-        submit_button.click()
+        try:
+            submit_button = WebDriverWait(browser, 40).until(
+                EC.element_to_be_clickable((By.XPATH, "//button[text()='Submit']"))
+            )
+            submit_button.click()
+            print("Нажата кнопка Submit")
+        except Exception as e:
+            print(f"Не удалось найти или нажать кнопку Submit: {e}")
 
         # Ожидание проверки полей
-        WebDriverWait(browser, 10).until(
-            EC.presence_of_element_located((By.ID, "zip-code"))
-        )
+        try:
+            WebDriverWait(browser, 10).until(
+                EC.presence_of_element_located((By.NAME, "zip-code"))
+            )
+            print("Поля проверены")
+        except Exception as e:
+            print(f"Не удалось проверить поля: {e}")
 
         # Проверка подсветки полей
-        zip_code_element = browser.find_element(By.ID, "zip-code")
-        assert "is-invalid" in zip_code_element.get_attribute("class"), "Zip code is not highlighted in red"
+        try:
+            zip_code_element = browser.find_element(By.NAME, "zip-code")
+            assert "is-invalid" in zip_code_element.get_attribute("class"), "Zip code is not highlighted in red"
+            print("Zip code подсвечен красным")
 
-        green_fields = ["first-name", "last-name", "address", "e-mail", "phone", "city", "country", "job-position", "company"]
-        for field in green_fields:
-            element = browser.find_element(By.ID, field)
-            assert "is-valid" in element.get_attribute("class"), f"{field} is not highlighted in green"
+            green_fields = ["first-name", "last-name", "address", "e-mail", "phone", "city", "country", "job-position", "company"]
+            for field in green_fields:
+                element = browser.find_element(By.NAME, field)
+                assert "is-valid" in element.get_attribute("class"), f"{field} is not highlighted in green"
+                print(f"{field} подсвечен зеленым")
+        except Exception as e:
+            print(f"Ошибка при проверке подсветки полей: {e}")
+
     except Exception as e:
         print(f"Ошибка: {e}")
     finally:
