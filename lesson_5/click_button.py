@@ -12,3 +12,7 @@ def click_button(browser):
 browser = webdriver.Chrome()
 click_button(browser)
 browser.quit()
+
+browser = webdriver.Firefox()
+click_button(browser)
+browser.quit()

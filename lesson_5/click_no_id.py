@@ -10,3 +10,8 @@ def click_button_no_id(browser):
 browser = webdriver.Chrome()
 click_button_no_id(browser)
 browser.quit()
+
+
+browser = webdriver.Firefox()
+click_button_no_id(browser)
+browser.quit()

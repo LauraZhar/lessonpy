@@ -17,3 +17,8 @@ def handle_modal_window(browser):
 browser = webdriver.Chrome()
 handle_modal_window(browser)
 browser.quit()
+
+
+browser = webdriver.Firefox()
+handle_modal_window(browser)
+browser.quit()

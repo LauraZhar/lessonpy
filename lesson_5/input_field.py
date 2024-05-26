@@ -12,3 +12,7 @@ def input_text_field(browser):
 browser = webdriver.Chrome()
 input_text_field(browser)
 browser.quit()
+
+browser = webdriver.Firefox()
+input_text_field(browser)
+browser.quit()

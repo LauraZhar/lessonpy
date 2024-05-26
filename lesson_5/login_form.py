@@ -15,3 +15,7 @@ def login_form(browser):
 browser = webdriver.Chrome()
 login_form(browser)
 browser.quit()
+
+browser = webdriver.Firefox()
+login_form(browser)
+browser.quit()
