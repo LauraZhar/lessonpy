@@ -1,76 +1,36 @@
 import pytest
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
-def test_form_submission():
-    browser = webdriver.Chrome()
-    try:
-        browser.get("https://bonigarcia.dev/selenium-webdriver-java/data-types.html")
+@pytest.fixture
+def browser():
+    driver = webdriver.Chrome()
+    yield driver
+    driver.quit()
 
-        # Ожидание появления всех необходимых полей
-        fields = {
-            "first-name": "Иван",
-            "last-name": "Петров",
-            "address": "Ленина, 55-3",
-            "e-mail": "test@skypro.com",
-            "phone": "+7985899998787",
-            "zip-code": "010000",
-            "city": "Москва",
-            "country": "Россия",
-            "job-position": "QA",
-            "company": "SkyPro"
-        }
+def test_form_submission(browser):
+    browser.get("https://bonigarcia.dev/selenium-webdriver-java/data-types.html")
 
-        for field_name, value in fields.items():
-            try:
-                element = WebDriverWait(browser, 40).until(
-                    EC.presence_of_element_located((By.NAME, field_name))
-                )
-                print(f"Найден элемент: {field_name}")
-                element.clear()
-                element.send_keys(value)
-            except Exception as e:
-                print(f"Не удалось найти элемент с name {field_name}: {e}")
+  
+    browser.find_element(By.NAME, "first-name").send_keys("Иван")
+    browser.find_element(By.NAME, "last-name").send_keys("Петров")
+    browser.find_element(By.NAME, "address").send_keys("Ленина, 55-3")
+    browser.find_element(By.NAME, "e-mail").send_keys("test@skypro.com")
+    browser.find_element(By.NAME, "phone").send_keys("+7985899998787")
+    browser.find_element(By.NAME, "city").send_keys("Москва")
+    browser.find_element(By.NAME, "country").send_keys("Россия")
+    browser.find_element(By.NAME, "job-position").send_keys("QA")
+    browser.find_element(By.NAME, "company").send_keys("SkyPro")
 
-        # Нажатие кнопки Submit
-        try:
-            submit_button = WebDriverWait(browser, 40).until(
-                EC.element_to_be_clickable((By.XPATH, "//button[text()='Submit']"))
-            )
-            submit_button.click()
-            print("Нажата кнопка Submit")
-        except Exception as e:
-            print(f"Не удалось найти или нажать кнопку Submit: {e}")
+ 
+    submit_button = browser.find_element(By.CSS_SELECTOR, "button[type='submit']")
+    submit_button.click()
+ 
+    zip_code_element = browser.find_element(By.ID, "zip-code")
+    assert "alert-danger" in zip_code_element.get_attribute("class"), "Zip code field is not highlighted red"
+ 
+    fields_to_check = ["first-name", "last-name", "address", "e-mail", "phone", "city", "country", "job-position", "company"]
+    for field in fields_to_check:
+        input_element = browser.find_element(By.ID, field)
+        assert "alert-success" in input_element.get_attribute("class"), f"Field {field} is not highlighted green"
 
-        # Ожидание проверки полей
-        try:
-            WebDriverWait(browser, 10).until(
-                EC.presence_of_element_located((By.NAME, "zip-code"))
-            )
-            print("Поля проверены")
-        except Exception as e:
-            print(f"Не удалось проверить поля: {e}")
-
-        # Проверка подсветки полей
-        try:
-            zip_code_element = browser.find_element(By.NAME, "zip-code")
-            assert "is-invalid" in zip_code_element.get_attribute("class"), "Zip code is not highlighted in red"
-            print("Zip code подсвечен красным")
-
-            green_fields = ["first-name", "last-name", "address", "e-mail", "phone", "city", "country", "job-position", "company"]
-            for field in green_fields:
-                element = browser.find_element(By.NAME, field)
-                assert "is-valid" in element.get_attribute("class"), f"{field} is not highlighted in green"
-                print(f"{field} подсвечен зеленым")
-        except Exception as e:
-            print(f"Ошибка при проверке подсветки полей: {e}")
-
-    except Exception as e:
-        print(f"Ошибка: {e}")
-    finally:
-        browser.quit()
-
-if __name__ == "__main__":
-    pytest.main()
