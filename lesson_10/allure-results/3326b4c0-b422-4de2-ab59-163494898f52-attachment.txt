@@ -1,0 +1,1 @@
+Get employee by ID response: 200, {"id":6708,"isActive":true,"createDateTime":"2024-06-22T01:16:44.652Z","lastChangedDateTime":"2024-06-22T01:16:44.652Z","firstName":"TestFirst","lastName":"TestLast","middleName":"TestMiddle","phone":"1234567890","email":"test@example.com","birthdate":null,"avatar_url":null,"companyId":10157}

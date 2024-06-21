@@ -1,0 +1,2 @@
+Create employee response: 201, {"id":6709}
+Get employee response: 200, {"id":6709,"isActive":true,"createDateTime":"2024-06-21T20:16:46.513Z","lastChangedDateTime":"2024-06-21T20:16:46.513Z","firstName":"John","lastName":"Doe","middleName":"Michael","phone":"1234567890","email":null,"birthdate":"1990-01-01","avatar_url":null,"companyId":10157}
