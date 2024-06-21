@@ -1,0 +1,5 @@
+requests
+pytest
+sqlalchemy
+psycopg2-binary
+allure-pytest
