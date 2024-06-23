@@ -1,5 +1,4 @@
-requests
-pytest
-sqlalchemy
-psycopg2-binary
-allure-pytest
+requests==2.24.0
+pytest==4.6.11
+sqlalchemy==1.4.52
+psycopg2-binary==2.9.9
