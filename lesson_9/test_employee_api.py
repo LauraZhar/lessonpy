@@ -1,162 +1,118 @@
+import sys
+import os
 import pytest
 import requests
-import sqlalchemy as sa
-from sqlalchemy.orm import sessionmaker
-from datetime import datetime
 
-# Конфигурация базы данных
-DATABASE_URL = "postgresql://x_clients_db_3fmx_user:mzoTw2Vp4Ox4NQH0XKN3KumdyAYE31uq@dpg-cour99g21fec73bsgvug-a.oregon-postgres.render.com/x_clients_db_3fmx"
-engine = sa.create_engine(DATABASE_URL)
-Session = sessionmaker(bind=engine)
-metadata = sa.MetaData()
+# Добавляем путь к директории проекта
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
-# Определение таблицы employee
-employee = sa.Table(
-    'employee', metadata,
-    sa.Column('id', sa.Integer, primary_key=True),
-    sa.Column('is_active', sa.Boolean, nullable=False, default=True),
-    sa.Column('create_timestamp', sa.TIMESTAMP, nullable=False, default=datetime.now),
-    sa.Column('change_timestamp', sa.TIMESTAMP, nullable=False, default=datetime.now),
-    sa.Column('first_name', sa.String(20), nullable=False),
-    sa.Column('last_name', sa.String(20), nullable=False),
-    sa.Column('middle_name', sa.String(20)),
-    sa.Column('phone', sa.String(15), nullable=False),
-    sa.Column('email', sa.String(256)),
-    sa.Column('avatar_url', sa.String(1024)),
-    sa.Column('company_id', sa.Integer, nullable=False)
-)
+from db import EmployeeDB
 
-# API URL
-BASE_URL = "https://x-clients-be.onrender.com"
-AUTH_URL = f"{BASE_URL}/auth/login"
-EMPLOYEE_URL = f"{BASE_URL}/employee"
-COMPANY_ID = 10157  # Замените на реальный ID компании, если требуется
+class EmployeeAPI:
+    def __init__(self, base_url, headers):
+        self.base_url = base_url
+        self.headers = headers
 
-# Логин и пароль для авторизации
-AUTH_CREDENTIALСЛS = {
-    "username": "raphael",
-    "password": "cool-but-crude"
-}
-
-@pytest.fixture(scope="module")
-def auth_token():
-    response = requests.post(AUTH_URL, json=AUTH_CREDENTIALСЛS)
-    print(f"Authorization response: {response.status_code}, {response.text}")
-    try:
+    def create_employee(self, employee_data):
+        response = requests.post(f"{self.base_url}/employee", json=employee_data, headers=self.headers)
         response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        print(f"Authorization failed: {response.text}")
-        raise e
-    return response.json()["userToken"]
+        return response.json()
+
+    def update_employee(self, employee_id, update_data):
+        response = requests.patch(f"{self.base_url}/employee/{employee_id}", json=update_data, headers=self.headers)
+        response.raise_for_status()
+        return response.json()
+
+    def get_employee(self, employee_id):
+        response = requests.get(f"{self.base_url}/employee/{employee_id}", headers=self.headers)
+        response.raise_for_status()
+        return response.json()
+
+    def delete_employee(self, employee_id):
+        response = requests.delete(f"{self.base_url}/employee/{employee_id}", headers=self.headers)
+        response.raise_for_status()
 
 @pytest.fixture(scope="module")
-def headers(auth_token):
-    return {
-        "x-client-token": auth_token,
-        "Content-Type": "application/json"
-    }
+def db():
+    db_instance = EmployeeDB()
+    yield db_instance
+    db_instance.close()
 
 @pytest.fixture(scope="module")
-def db_session():
-    session = Session()
-    yield session
-    session.close()
-
-@pytest.fixture(scope="module")
-def setup_test_data(db_session):
-    new_employee = {
-        "first_name": "TestFirst",
-        "last_name": "TestLast",
-        "middle_name": "TestMiddle",
-        "phone": "1234567890",
-        "email": "test@example.com",
-        "company_id": COMPANY_ID,
+def setup_test_company(db):
+    new_company = {
+        "name": "Test Company",
+        "description": "A company for testing purposes",
         "is_active": True
     }
-    insert_stmt = employee.insert().values(new_employee).returning(employee.c.id)
-    result = db_session.execute(insert_stmt)
-    db_session.commit()
-    test_employee_id = result.scalar()
-    yield test_employee_id
-    db_session.execute(employee.delete().where(employee.c.id == test_employee_id))
-    db_session.commit()
+    company_id = db.insert_company(new_company)
+    yield company_id
+    db.delete_employees_by_company_id(company_id)
+    db.delete_company(company_id)
 
-def test_get_employees(headers, setup_test_data):
-    response = requests.get(EMPLOYEE_URL, headers=headers, params={"company": COMPANY_ID})
-    print(f"Get employees response: {response.status_code}, {response.text}")
-    assert response.status_code == 200
-    assert isinstance(response.json(), list)
+@pytest.fixture(scope="module")
+def headers():
+    auth_url = "https://x-clients-be.onrender.com/auth/login"
+    auth_data = {
+        "username": "raphael",
+        "password": "cool-but-crude"
+    }
+    response = requests.post(auth_url, json=auth_data)
+    token = response.json()["userToken"]
+    return {
+        "Content-Type": "application/json",
+        "x-client-token": token
+    }
 
-def test_post_employee(headers, db_session):
+@pytest.fixture(scope="module")
+def employee_api(headers):
+    return EmployeeAPI(base_url="https://x-clients-be.onrender.com", headers=headers)
+
+def test_employee_crud_operations(employee_api, db, setup_test_company):
+    company_id = setup_test_company
+
+    # Создание нового сотрудника (insert)
     new_employee = {
         "firstName": "John",
         "lastName": "Doe",
         "middleName": "Michael",
-        "companyId": COMPANY_ID,
+        "companyId": company_id,
         "email": "john.doe@example.com",
         "phone": "1234567890",
         "birthdate": "1990-01-01",
         "isActive": True
     }
-    response = requests.post(EMPLOYEE_URL, json=new_employee, headers=headers)
-    print(f"Create employee response: {response.status_code}, {response.text}")
-    try:
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        print(f"Failed to create employee: {response.text}")
-        raise e
-    assert response.status_code == 201
-    employee_id = response.json()["id"]
+    create_response = employee_api.create_employee(new_employee)
+    print(f"Create employee response: {create_response}")
+    employee_id = create_response["id"]
 
-    # Убедимся, что сотрудник добавлен
-    get_response = requests.get(f"{EMPLOYEE_URL}/{employee_id}", headers=headers)
-    print(f"Get employee response: {get_response.status_code}, {get_response.text}")
-    assert get_response.status_code == 200
-    employee_data = get_response.json()
-    for key in new_employee:
-        if new_employee[key] is not None:
-            if key in employee_data and employee_data[key] is not None:
-                assert new_employee[key] == employee_data[key], f"Expected {key} to be {new_employee[key]}, but got {employee_data[key]}"
+    # Проверка созданного сотрудника в базе данных
+    db_employee = db.select_employee(employee_id)
+    print(f"Database employee: {db_employee}")
+    assert db_employee is not None
+    assert db_employee["id"] == employee_id
+    assert db_employee["first_name"] == "John"
+    assert db_employee["last_name"] == "Doe"
+    assert db_employee["middle_name"] == "Michael"
+    assert db_employee["phone"] == "1234567890"
+    assert db_employee["is_active"] == True
 
-    # Удаление сотрудника для чистоты тестов
-    db_session.execute(employee.delete().where(employee.c.id == employee_id))
-    db_session.commit()
-
-def test_get_employee_by_id(headers, setup_test_data):
-    employee_id = setup_test_data
-    response = requests.get(f"{EMPLOYEE_URL}/{employee_id}", headers=headers)
-    print(f"Get employee by ID response: {response.status_code}, {response.text}")
-    assert response.status_code == 200
-    employee_data = response.json()
-    assert employee_data["id"] == employee_id
-    assert employee_data["firstName"] == "TestFirst"
-    assert employee_data["lastName"] == "TestLast"
-    assert employee_data["phone"] == "1234567890"
-    assert employee_data["email"] == "test@example.com"
-
-def test_patch_employee(headers, setup_test_data, db_session):
-    employee_id = setup_test_data
-    updated_employee = {
-        "lastName": "Smith",
-        "isActive": False
+    # Обновление сотрудника (update)
+    updated_data = {
+        "lastName": "Smith"
     }
-    patch_response = requests.patch(f"{EMPLOYEE_URL}/{employee_id}", json=updated_employee, headers=headers)
-    print(f"Patch employee response: {patch_response.status_code}, {patch_response.text}")
-    try:
-        patch_response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        print(f"Failed to update employee: {patch_response.text}")
-        raise e
-    assert patch_response.status_code == 200
+    update_response = employee_api.update_employee(employee_id, updated_data)
+    print(f"Update employee response: {update_response}")
 
-    # Убедимся, что данные обновлены
-    get_response = requests.get(f"{EMPLOYEE_URL}/{employee_id}", headers=headers)
-    print(f"Get updated employee response: {get_response.status_code}, {get_response.text}")
-    assert get_response.status_code == 200
-    employee_data = get_response.json()
-    for key in updated_employee:
-        if updated_employee[key] is not None:
-            if key in employee_data and employee_data[key] is not None:
-                assert updated_employee[key] == employee_data[key], f"Expected {key} to be {updated_employee[key]}, but got {employee_data[key]}"
-            else:
-                print(f"Key {key} not found or is None in response data")
+    # Проверка обновленного сотрудника в базе данных
+    db_updated_employee = db.select_employee(employee_id)
+    print(f"Database updated employee: {db_updated_employee}")
+    assert db_updated_employee["last_name"] == "Smith"
+
+    # Удаление сотрудника (delete)
+    db.delete_employee(employee_id)
+
+    # Проверка, что сотрудник удален из базы данных
+    db_deleted_employee = db.select_employee(employee_id)
+    print(f"Database deleted employee: {db_deleted_employee}")
+    assert db_deleted_employee is None
